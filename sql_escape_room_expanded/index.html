@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL Escape Room — The Missing Query</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="game-shell">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">▤</div><div><b>SQL ESCAPE ROOM</b><small>THE MISSING QUERY</small></div></div>
+    <div class="hud">
+      <div class="hud-card player-hud"><img id="avatar-mini" src="assets/girl.svg"><div><b id="player-name-hud">Explorer</b><small id="room-name-hud">THE STUDY</small></div></div>
+      <div class="hud-card lives" id="lives" aria-label="5 lives">♥ ♥ ♥ ♥ ♥</div>
+      <div class="hud-card timer-card"><span>◷</span><div><b id="timer">15:00</b><small>TIME LEFT</small></div></div>
+    </div>
+  </header>
+  <div class="instruction instruction-bar" id="instruction"><span id="instruction-text">Move with WASD / arrow keys. Face an object and press E to interact.</span><button class="secondary pause-toggle" id="pause-game" type="button">Pause game</button><button class="secondary pause-toggle" id="restart-game-inline" type="button">Restart game</button></div>
+
+  <main>
+    <section class="game-layout">
+      <div class="scene-column">
+        <div class="scene-topline"><span class="live-dot"></span><span id="scene-title">ROOM 1 · THE STUDY</span><span class="progress" id="progress">0 / 12 CLUES</span></div>
+        <div class="scene" id="scene">
+          <img class="room-bg" id="room-bg" src="assets/room_study.png" alt="Pixel-art escape room">
+          <div class="room-tint" id="room-tint"></div>
+          <div id="objects"></div>
+          <div class="player" id="player"><img id="avatar" src="assets/girl.svg" alt="Player character"></div>
+          <div class="prompt" id="prompt">E · INTERACT</div>
+          <div class="toast" id="toast">Explore the room. Move close to a glowing object and press E.</div>
+          <div class="controls"><span>W A S D / ↑ ↓ ← → <i>MOVE</i></span><span>E <i>INTERACT</i></span></div>
+        </div>
+        <div class="story panel"><div class="story-icon">☾</div><div><b id="story-title">A mysterious data lab...</b><p id="story">Find the clues, solve the SQL puzzles and escape!</p></div></div>
+      </div>
+
+      <aside class="side-column">
+        <section class="panel map-panel">
+          <div class="panel-title"><span>⌖</span><b id="map-title">ROOM MAP</b></div>
+          <div class="map" id="map">
+            <div class="map-room r1"><span>1</span></div><div class="map-link l12"></div>
+            <div class="map-room r2"><span>2</span></div><div class="map-link l23"></div>
+            <div class="map-room r3"><span>3</span></div>
+            <div class="map-player" id="map-player">●</div>
+          </div>
+          <div class="map-legend"><span>● YOU ARE HERE</span><span>✓ CLEARED</span></div>
+        </section>
+        <section class="panel room-panel">
+          <div class="panel-title"><span>✧</span><b id="rooms-title">ROOMS</b></div>
+          <div class="room-list" id="room-list"></div>
+        </section>
+        <section class="panel inventory-access">
+          <button class="inventory-open" id="inventory-open" title="Open inventory" aria-label="Open inventory">▣ <b>Inventory</b><small id="inventory-count">0 / 12</small></button>
+        </section>
+      </aside>
+    </section>
+    <footer>THE MISSING QUERY <span>•</span> A tiny adventure for curious SQL minds</footer>
+  </main>
+</div>
+
+<!-- Character setup -->
+<div class="overlay" id="setup-overlay">
+  <section class="modal setup-modal">
+    <div class="modal-kicker">WELCOME, DETECTIVE</div><h1 id="setup-title">Choose your character</h1>
+    <p id="setup-desc">Your SQL adventure is about to begin. Pick a character and give them a name.</p>
+    <div class="character-choices">
+      <button class="character-choice selected" data-character="girl"><img src="assets/girl.svg" alt="Girl"><b id="girl-label">Girl</b></button>
+      <button class="character-choice" data-character="boy"><img src="assets/boy.svg" alt="Boy"><b id="boy-label">Boy</b></button>
+    </div>
+    <label class="name-label" for="player-name" id="name-label">Character name</label>
+    <input id="player-name" maxlength="16" placeholder="Enter a name" value="Elly">
+    <button class="primary full" id="start-game">Start adventure</button>
+  </section>
+</div>
+
+<!-- Pause menu -->
+<div class="overlay hidden" id="pause-overlay">
+  <section class="modal pause-modal">
+    <div class="modal-kicker">ADVENTURE PAUSED</div>
+    <h2>Take a breather</h2>
+    <p>Your room and timer are paused.</p>
+    <button class="primary full" id="resume-game">Resume game</button>
+    <button class="secondary full" id="pause-restart">Restart game</button>
+  </section>
+</div>
+
+<!-- Quiz / puzzle -->
+<div class="overlay hidden" id="quiz-overlay">
+  <section class="modal quiz-modal">
+    <button class="modal-close" id="quiz-close">×</button>
+    <div class="modal-kicker" id="quiz-kicker">SQL CHALLENGE 01 / 12</div>
+    <h2 id="quiz-title">The forgotten note</h2>
+    <p id="quiz-desc"></p>
+    <div id="quiz-content"></div>
+    <div class="quiz-feedback" id="quiz-feedback"></div>
+    <div class="modal-actions"><button class="secondary hidden" id="quiz-back">Back</button><button class="primary" id="quiz-submit">Check answer</button></div>
+  </section>
+</div>
+
+<!-- Final door keypad -->
+<div class="overlay hidden" id="door-overlay">
+  <section class="modal door-modal">
+    <button class="modal-close" id="door-close">×</button>
+    <div class="modal-kicker">FINAL SECURITY TERMINAL</div>
+    <h2 id="door-title">The final door</h2>
+    <p id="door-desc">Enter the 12-digit code you collected from all three rooms.</p>
+    <input class="door-code" id="door-code" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Paste the 12-digit code" aria-label="12-digit escape code">
+    <button class="secondary full" id="door-fill-inventory">Put the code from inventory</button>
+    <div class="keypad" id="keypad"></div>
+    <div class="quiz-feedback" id="door-feedback"></div>
+    <button class="primary full" id="door-submit">Unlock the exit</button>
+  </section>
+</div>
+
+<!-- Leaderboard -->
+<div class="overlay hidden" id="leaderboard-overlay">
+  <section class="modal leaderboard-modal">
+    <button class="modal-close" id="leaderboard-close">×</button>
+    <div class="modal-kicker">HALL OF SQL FAME</div><h2 id="leaderboard-title">Top detectives</h2>
+    <div id="leaderboard-table"></div>
+    <button class="primary full" id="leaderboard-done">Back to the game</button>
+    <button class="secondary full" id="leaderboard-restart">Restart game</button>
+  </section>
+</div>
+
+<!-- Win / game over -->
+<div class="overlay hidden" id="result-overlay">
+  <section class="modal result-modal"><div class="result-star">✦</div><div class="modal-kicker" id="result-kicker">CASE CLOSED</div><h1 id="result-title">You escaped!</h1><p id="result-desc"></p><div class="result-stats" id="result-stats"></div><button class="primary full" id="result-leaderboard">View leaderboard</button><button class="secondary full" id="play-again">Restart game</button></section>
+</div>
+
+<!-- Inventory panel -->
+<div class="overlay hidden" id="inventory-overlay">
+  <section class="modal inventory-modal">
+    <button class="modal-close" id="inventory-close" aria-label="Close inventory">×</button>
+    <div class="modal-kicker">COLLECTED ITEMS</div>
+    <h2>Inventory</h2>
+    <p class="inventory-code-label">CODE FRAGMENTS <span id="inventory-fragment-count">0 / 12</span></p>
+    <input class="code-preview inventory-code-preview" id="inventory-code-preview" type="text" readonly value="_ _ _ _ _ _ _ _ _ _ _ _" aria-label="Collected code fragments">
+    <div class="inventory-grid inventory-grid-modal" id="inventory-modal"></div>
+    <button class="secondary full" id="inventory-copy-code">Copy collected fragments</button>
+    <button class="primary full" id="inventory-use-code">Fill the exit keypad</button>
+    <button class="primary full" id="inventory-done">Back to the game</button>
+  </section>
+</div>
+
+<script src="src/game-fixed.js"></script>
+</body></html>
